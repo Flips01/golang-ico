@@ -5,12 +5,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"image/color"
-	"image/draw"
 	"image/png"
 	"io"
 
-	bmp "github.com/jsummers/gobmp"
+	"golang.org/x/image/bmp"
 )
 
 func init() {
@@ -115,25 +113,6 @@ func (d *decoder) decode(r io.Reader) (err error) {
 			if d.images[i], err = bmp.Decode(bytes.NewReader(data)); err != nil {
 				return err
 			}
-			bounds := d.images[i].Bounds()
-			mask := image.NewAlpha(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
-			masked := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
-			for row := 0; row < int(e.Height); row++ {
-				for col := 0; col < int(e.Width); col++ {
-					if maskData != nil {
-						rowSize := (int(e.Width) + 31) / 32 * 4
-						if (maskData[row*rowSize+col/8]>>(7-uint(col)%8))&0x01 != 1 {
-							mask.SetAlpha(col, int(e.Height)-row-1, color.Alpha{255})
-						}
-					} else { // 32-Bit
-						rowSize := (int(e.Width)*32 + 31) / 32 * 4
-						offset := int(binary.LittleEndian.Uint32(data[10:14]))
-						mask.SetAlpha(col, int(e.Height)-row-1, color.Alpha{data[offset+row*rowSize+col*4+3]})
-					}
-				}
-			}
-			draw.DrawMask(masked, masked.Bounds(), d.images[i], bounds.Min, mask, bounds.Min, draw.Src)
-			d.images[i] = masked
 		}
 	}
 	return nil
